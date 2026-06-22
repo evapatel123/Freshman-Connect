@@ -1,0 +1,1 @@
+- [Link Crew Connect architecture](link-crew-connect.md) — bearer token auth, school-scoped data, interest-based quiz matching, hook naming conventions for generated API client

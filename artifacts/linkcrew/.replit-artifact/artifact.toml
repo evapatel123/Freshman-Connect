@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Link Crew Connect"
+version = "1.0.0"
+id = "artifacts/linkcrew"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25282
+
+[services.development]
+run = "pnpm --filter @workspace/linkcrew run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/linkcrew", "run", "build" ]
+publicDir = "artifacts/linkcrew/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25282"
+BASE_PATH = "/"

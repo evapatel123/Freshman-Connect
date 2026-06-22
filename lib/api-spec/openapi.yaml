@@ -1,22 +1,44 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Link Crew Connect API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: schools
+    description: School management
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User profiles
+  - name: quiz
+    description: Onboarding quiz
+  - name: leaders
+    description: Link Crew leader profiles
+  - name: matches
+    description: Freshman-leader matching
+  - name: conversations
+    description: Private messaging
+  - name: posts
+    description: Discussion boards
+  - name: faqs
+    description: Searchable FAQs
+  - name: notifications
+    description: Notifications
+  - name: friends
+    description: Friendship suggestions
+  - name: admin
+    description: Admin tools
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +46,868 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Schools
+  /schools:
+    get:
+      operationId: listSchools
+      tags: [schools]
+      summary: List all schools
+      responses:
+        "200":
+          description: List of schools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/School"
+    post:
+      operationId: createSchool
+      tags: [schools]
+      summary: Create a school (super admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchoolInput"
+      responses:
+        "201":
+          description: Created school
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+
+  /schools/{id}:
+    get:
+      operationId: getSchool
+      tags: [schools]
+      summary: Get a school by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: School
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+
+  # Auth
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered user with session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # Users
+  /users/me:
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # Quiz
+  /quiz/questions:
+    get:
+      operationId: getQuizQuestions
+      tags: [quiz]
+      summary: Get the 60-question onboarding quiz
+      responses:
+        "200":
+          description: Quiz questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizQuestion"
+
+  /quiz/submit:
+    post:
+      operationId: submitQuiz
+      tags: [quiz]
+      summary: Submit quiz answers and generate interest profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSubmission"
+      responses:
+        "200":
+          description: Quiz result and interest profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+
+  /quiz/result:
+    get:
+      operationId: getQuizResult
+      tags: [quiz]
+      summary: Get the current user's quiz result
+      responses:
+        "200":
+          description: Quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+
+  # Leader Profiles
+  /leaders:
+    get:
+      operationId: listLeaders
+      tags: [leaders]
+      summary: List Link Crew leaders (filtered by school)
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Leaders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderProfile"
+
+  /leaders/featured:
+    get:
+      operationId: getFeaturedLeaders
+      tags: [leaders]
+      summary: Get featured/top Link Crew leaders
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Featured leaders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderProfile"
+
+  /leaders/profile:
+    post:
+      operationId: createLeaderProfile
+      tags: [leaders]
+      summary: Create leader profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaderProfileInput"
+      responses:
+        "201":
+          description: Created leader profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderProfile"
+    patch:
+      operationId: updateLeaderProfile
+      tags: [leaders]
+      summary: Update leader profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaderProfileUpdate"
+      responses:
+        "200":
+          description: Updated leader profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderProfile"
+
+  /leaders/{id}:
+    get:
+      operationId: getLeaderProfile
+      tags: [leaders]
+      summary: Get a leader profile by user ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Leader profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderProfile"
+
+  # Matches
+  /matches/me:
+    get:
+      operationId: getMyMatches
+      tags: [matches]
+      summary: Get matched leaders for the current freshman
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /matches/suggestions:
+    get:
+      operationId: getMatchSuggestions
+      tags: [matches]
+      summary: Get leader match suggestions based on quiz profile
+      responses:
+        "200":
+          description: Suggested matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  # Conversations
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [conversations]
+      summary: List conversations for current user
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [conversations]
+      summary: Start a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{id}/messages:
+    get:
+      operationId: getMessages
+      tags: [conversations]
+      summary: Get messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [conversations]
+      summary: Send a message in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  # Discussion Board Posts
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List discussion posts
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a discussion post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a post with its comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post with comments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostDetail"
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /posts/{id}/comments:
+    post:
+      operationId: createComment
+      tags: [posts]
+      summary: Add a comment to a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /posts/{id}/comments/{commentId}:
+    delete:
+      operationId: deleteComment
+      tags: [posts]
+      summary: Delete a comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # FAQs
+  /faqs:
+    get:
+      operationId: listFaqs
+      tags: [faqs]
+      summary: List FAQs
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: FAQs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Faq"
+    post:
+      operationId: createFaq
+      tags: [faqs]
+      summary: Create a FAQ (leader or admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaqInput"
+      responses:
+        "201":
+          description: Created FAQ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Faq"
+
+  /faqs/{id}:
+    patch:
+      operationId: updateFaq
+      tags: [faqs]
+      summary: Update a FAQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaqUpdate"
+      responses:
+        "200":
+          description: Updated FAQ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Faq"
+    delete:
+      operationId: deleteFaq
+      tags: [faqs]
+      summary: Delete a FAQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # Notifications
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # Friends / Peer Connections
+  /friends/suggestions:
+    get:
+      operationId: getFriendSuggestions
+      tags: [friends]
+      summary: Get peer friend suggestions based on similar interests
+      responses:
+        "200":
+          description: Friend suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FriendSuggestion"
+
+  /friends:
+    get:
+      operationId: listFriends
+      tags: [friends]
+      summary: List accepted friends
+      responses:
+        "200":
+          description: Friends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Friendship"
+    post:
+      operationId: sendFriendRequest
+      tags: [friends]
+      summary: Send a friend request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FriendRequestInput"
+      responses:
+        "201":
+          description: Friend request sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Friendship"
+
+  /friends/{id}/accept:
+    patch:
+      operationId: acceptFriendRequest
+      tags: [friends]
+      summary: Accept a friend request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Friendship accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Friendship"
+
+  # Moderation / Reports
+  /reports:
+    post:
+      operationId: createReport
+      tags: [admin]
+      summary: Report content for moderation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /admin/reports:
+    get:
+      operationId: listReports
+      tags: [admin]
+      summary: List moderation reports (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+
+  /admin/reports/{id}:
+    patch:
+      operationId: resolveReport
+      tags: [admin]
+      summary: Resolve a moderation report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportUpdate"
+      responses:
+        "200":
+          description: Resolved report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Get admin dashboard statistics
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List users for admin management
+      parameters:
+        - name: schoolId
+          in: query
+          schema:
+            type: integer
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +915,658 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    School:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        colors:
+          type: ["string", "null"]
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, city, state, memberCount, createdAt]
+
+    SchoolInput:
+      type: object
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        colors:
+          type: ["string", "null"]
+      required: [name, city, state]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [freshman, leader, admin]
+        schoolId:
+          type: integer
+        schoolName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        grade:
+          type: ["integer", "null"]
+        privacyLevel:
+          type: string
+          enum: [public, school_only, private]
+        quizCompleted:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, email, firstName, lastName, role, schoolId, schoolName, privacyLevel, quizCompleted, createdAt]
+
+    RegisterInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [freshman, leader]
+        schoolId:
+          type: integer
+      required: [email, password, firstName, lastName, role, schoolId]
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        schoolId:
+          type: integer
+      required: [email, password, schoolId]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    UserUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        privacyLevel:
+          type: string
+          enum: [public, school_only, private]
+
+    QuizQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        questionNumber:
+          type: integer
+        category:
+          type: string
+          enum: [hobbies, academic_interests, extracurriculars, college_goals, career_interests, exploration]
+        text:
+          type: string
+        type:
+          type: string
+          enum: [multiple_choice, scale, boolean]
+        options:
+          type: ["array", "null"]
+          items:
+            type: string
+      required: [id, questionNumber, category, text, type]
+
+    QuizAnswer:
+      type: object
+      properties:
+        questionId:
+          type: integer
+        answer:
+          type: string
+      required: [questionId, answer]
+
+    QuizSubmission:
+      type: object
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizAnswer"
+      required: [answers]
+
+    QuizResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        hobbies:
+          type: array
+          items:
+            type: string
+        academicInterests:
+          type: array
+          items:
+            type: string
+        extracurriculars:
+          type: array
+          items:
+            type: string
+        collegeGoals:
+          type: array
+          items:
+            type: string
+        careerInterests:
+          type: array
+          items:
+            type: string
+        isExploring:
+          type: boolean
+        completedAt:
+          type: string
+      required: [id, userId, hobbies, academicInterests, extracurriculars, collegeGoals, careerInterests, isExploring, completedAt]
+
+    LeaderProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        user:
+          $ref: "#/components/schemas/User"
+        bio:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+        activities:
+          type: array
+          items:
+            type: string
+        favoriteClasses:
+          type: array
+          items:
+            type: string
+        apHonorsExperience:
+          type: ["string", "null"]
+        satActExperience:
+          type: ["string", "null"]
+        collegePlans:
+          type: ["string", "null"]
+        availability:
+          type: string
+        matchCount:
+          type: integer
+        rating:
+          type: ["number", "null"]
+      required: [id, userId, user, bio, interests, activities, favoriteClasses, availability, matchCount]
+
+    LeaderProfileInput:
+      type: object
+      properties:
+        bio:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+        activities:
+          type: array
+          items:
+            type: string
+        favoriteClasses:
+          type: array
+          items:
+            type: string
+        apHonorsExperience:
+          type: ["string", "null"]
+        satActExperience:
+          type: ["string", "null"]
+        collegePlans:
+          type: ["string", "null"]
+        availability:
+          type: string
+      required: [bio, interests, activities, favoriteClasses, availability]
+
+    LeaderProfileUpdate:
+      type: object
+      properties:
+        bio:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+        activities:
+          type: array
+          items:
+            type: string
+        favoriteClasses:
+          type: array
+          items:
+            type: string
+        apHonorsExperience:
+          type: ["string", "null"]
+        satActExperience:
+          type: ["string", "null"]
+        collegePlans:
+          type: ["string", "null"]
+        availability:
+          type: string
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: integer
+        freshmanId:
+          type: integer
+        leaderId:
+          type: integer
+        leaderProfile:
+          $ref: "#/components/schemas/LeaderProfile"
+        matchScore:
+          type: number
+        sharedInterests:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, accepted, declined]
+        createdAt:
+          type: string
+      required: [id, freshmanId, leaderId, leaderProfile, matchScore, sharedInterests, status, createdAt]
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        lastMessage:
+          type: ["string", "null"]
+        lastMessageAt:
+          type: ["string", "null"]
+        unreadCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, participants, unreadCount, createdAt]
+
+    ConversationInput:
+      type: object
+      properties:
+        recipientId:
+          type: integer
+        initialMessage:
+          type: string
+      required: [recipientId, initialMessage]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        senderId:
+          type: integer
+        sender:
+          $ref: "#/components/schemas/User"
+        content:
+          type: string
+        readAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, conversationId, senderId, sender, content, createdAt]
+
+    MessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required: [content]
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        authorId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/User"
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, advice]
+        commentCount:
+          type: integer
+        isPinned:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, schoolId, authorId, author, title, content, category, commentCount, isPinned, createdAt]
+
+    PostDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        authorId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/User"
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, advice]
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        isPinned:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, schoolId, authorId, author, title, content, category, comments, isPinned, createdAt]
+
+    PostInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, advice]
+        schoolId:
+          type: integer
+      required: [title, content, category, schoolId]
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        postId:
+          type: integer
+        authorId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/User"
+        content:
+          type: string
+        createdAt:
+          type: string
+      required: [id, postId, authorId, author, content, createdAt]
+
+    CommentInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required: [content]
+
+    Faq:
+      type: object
+      properties:
+        id:
+          type: integer
+        schoolId:
+          type: integer
+        authorId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/User"
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, college]
+        views:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, schoolId, authorId, author, question, answer, category, views, createdAt]
+
+    FaqInput:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, college]
+        schoolId:
+          type: integer
+      required: [question, answer, category, schoolId]
+
+    FaqUpdate:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+          enum: [classes, schedules, sat_act, clubs, sports, teachers, general, college]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+          enum: [match, message, comment, friend_request, friend_accepted, report_resolved]
+        title:
+          type: string
+        body:
+          type: string
+        isRead:
+          type: boolean
+        linkUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, userId, type, title, body, isRead, createdAt]
+
+    FriendSuggestion:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        sharedInterests:
+          type: array
+          items:
+            type: string
+        compatibilityScore:
+          type: number
+      required: [user, sharedInterests, compatibilityScore]
+
+    Friendship:
+      type: object
+      properties:
+        id:
+          type: integer
+        requesterId:
+          type: integer
+        recipientId:
+          type: integer
+        requester:
+          $ref: "#/components/schemas/User"
+        recipient:
+          $ref: "#/components/schemas/User"
+        status:
+          type: string
+          enum: [pending, accepted, declined]
+        createdAt:
+          type: string
+      required: [id, requesterId, recipientId, requester, recipient, status, createdAt]
+
+    FriendRequestInput:
+      type: object
+      properties:
+        recipientId:
+          type: integer
+      required: [recipientId]
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        reporterId:
+          type: integer
+        reporter:
+          $ref: "#/components/schemas/User"
+        contentType:
+          type: string
+          enum: [post, comment, message, user]
+        contentId:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, resolved, dismissed]
+        adminNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, reporterId, reporter, contentType, contentId, reason, status, createdAt]
+
+    ReportInput:
+      type: object
+      properties:
+        contentType:
+          type: string
+          enum: [post, comment, message, user]
+        contentId:
+          type: integer
+        reason:
+          type: string
+      required: [contentType, contentId, reason]
+
+    ReportUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [resolved, dismissed]
+        adminNotes:
+          type: string
+      required: [status]
+
+    AdminDashboard:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalFreshmen:
+          type: integer
+        totalLeaders:
+          type: integer
+        totalMatches:
+          type: integer
+        totalMessages:
+          type: integer
+        totalPosts:
+          type: integer
+        quizCompletionRate:
+          type: number
+        pendingReports:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              description:
+                type: string
+              timestamp:
+                type: string
+            required: [type, description, timestamp]
+      required: [totalUsers, totalFreshmen, totalLeaders, totalMatches, totalMessages, totalPosts, quizCompletionRate, pendingReports, recentActivity]
