@@ -45,3 +45,14 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
     next();
   });
 }
+
+/** Accepts global admin OR school_admin (scoped to their own school). */
+export async function requireSchoolAdmin(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  await requireAuth(req, res, () => {
+    if (req.userRole !== "admin" && req.userRole !== "school_admin") {
+      res.status(403).json({ error: "School admin access required" });
+      return;
+    }
+    next();
+  });
+}

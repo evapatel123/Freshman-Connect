@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarProvider
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, MessageCircle, HelpCircle, Bell, Settings, ShieldAlert, LogOut, UserPlus } from "lucide-react";
+import { LayoutDashboard, Users, MessageCircle, HelpCircle, Bell, Settings, ShieldAlert, LogOut, UserPlus, School } from "lucide-react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, school, logout } = useAuth();
@@ -123,9 +123,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarGroupContent>
             </SidebarGroup>
 
+            {(role === "school_admin" || role === "admin") && (
+              <SidebarGroup>
+                <SidebarGroupLabel>School Admin</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location === "/school-admin"}>
+                        <Link href="/school-admin">
+                          <School className="w-4 h-4 mr-2" />
+                          <span>School Panel</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
             {role === "admin" && (
               <SidebarGroup>
-                <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                <SidebarGroupLabel>Global Admin</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>

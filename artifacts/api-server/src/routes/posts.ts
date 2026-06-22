@@ -90,6 +90,29 @@ router.get("/posts/:id", requireAuth as any, async (req: AuthRequest, res): Prom
   });
 });
 
+router.patch("/posts/:id/pin", requireAuth as any, async (req: AuthRequest, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid post id" }); return; }
+
+  if (req.userRole !== "admin" && req.userRole !== "school_admin") {
+    res.status(403).json({ error: "School admin access required" }); return;
+  }
+
+  const [post] = await db.select().from(postsTable).where(eq(postsTable.id, id));
+  if (!post) { res.status(404).json({ error: "Post not found" }); return; }
+
+  if (req.userRole === "school_admin" && post.schoolId !== req.userSchoolId) {
+    res.status(403).json({ error: "Cannot pin posts from another school" }); return;
+  }
+
+  const [updated] = await db.update(postsTable).set({ isPinned: !post.isPinned }).where(eq(postsTable.id, id)).returning();
+  const [author] = await db.select().from(usersTable).where(eq(usersTable.id, updated.authorId));
+  const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, updated.schoolId));
+  const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(commentsTable).where(eq(commentsTable.postId, updated.id));
+  res.json(await buildPostResponse(updated, author, school, Number(count)));
+});
+
 router.delete("/posts/:id", requireAuth as any, async (req: AuthRequest, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeletePostParams.safeParse({ id: parseInt(raw, 10) });
@@ -97,7 +120,11 @@ router.delete("/posts/:id", requireAuth as any, async (req: AuthRequest, res): P
 
   const [post] = await db.select().from(postsTable).where(eq(postsTable.id, params.data.id));
   if (!post) { res.status(404).json({ error: "Post not found" }); return; }
-  if (post.authorId !== req.userId && req.userRole !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const isSchoolAdmin = req.userRole === "school_admin" && post.schoolId === req.userSchoolId;
+  if (post.authorId !== req.userId && req.userRole !== "admin" && !isSchoolAdmin) {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
 
   await db.delete(commentsTable).where(eq(commentsTable.postId, params.data.id));
   await db.delete(postsTable).where(eq(postsTable.id, params.data.id));
@@ -129,7 +156,12 @@ router.delete("/posts/:id/comments/:commentId", requireAuth as any, async (req: 
 
   const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, params.data.commentId));
   if (!comment) { res.status(404).json({ error: "Comment not found" }); return; }
-  if (comment.authorId !== req.userId && req.userRole !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const [parentPost] = await db.select().from(postsTable).where(eq(postsTable.id, params.data.id));
+  const isSchoolAdmin = req.userRole === "school_admin" && parentPost?.schoolId === req.userSchoolId;
+  if (comment.authorId !== req.userId && req.userRole !== "admin" && !isSchoolAdmin) {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
 
   await db.delete(commentsTable).where(eq(commentsTable.id, params.data.commentId));
   res.json({ success: true, message: "Comment deleted" });

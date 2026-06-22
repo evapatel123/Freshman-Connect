@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, jsonb, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,6 +15,7 @@ export const leaderProfilesTable = pgTable("leader_profiles", {
   availability: text("availability").notNull().default("weekdays"),
   matchCount: integer("match_count").notNull().default(0),
   rating: real("rating"),
+  isApproved: boolean("is_approved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

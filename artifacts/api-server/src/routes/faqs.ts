@@ -28,6 +28,10 @@ router.get("/faqs", requireAuth as any, async (req: AuthRequest, res): Promise<v
 });
 
 router.post("/faqs", requireAuth as any, async (req: AuthRequest, res): Promise<void> => {
+  if (req.userRole !== "leader" && req.userRole !== "admin" && req.userRole !== "school_admin") {
+    res.status(403).json({ error: "Only leaders and admins can post FAQs" }); return;
+  }
+
   const parsed = CreateFaqBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
@@ -43,9 +47,15 @@ router.patch("/faqs/:id", requireAuth as any, async (req: AuthRequest, res): Pro
   const bodyParsed = UpdateFaqBody.safeParse(req.body);
   if (!params.success || !bodyParsed.success) { res.status(400).json({ error: "Invalid request" }); return; }
 
-  const [faq] = await db.update(faqsTable).set(bodyParsed.data).where(eq(faqsTable.id, params.data.id)).returning();
-  if (!faq) { res.status(404).json({ error: "FAQ not found" }); return; }
+  const [existing] = await db.select().from(faqsTable).where(eq(faqsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "FAQ not found" }); return; }
 
+  const isSchoolAdmin = req.userRole === "school_admin" && existing.schoolId === req.userSchoolId;
+  if (existing.authorId !== req.userId && req.userRole !== "admin" && !isSchoolAdmin) {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
+
+  const [faq] = await db.update(faqsTable).set(bodyParsed.data).where(eq(faqsTable.id, params.data.id)).returning();
   const [author] = await db.select().from(usersTable).where(eq(usersTable.id, faq.authorId));
   const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, faq.schoolId));
   res.json({ ...faq, author: await formatUser(author, school), createdAt: faq.createdAt.toISOString(), updatedAt: undefined });
@@ -55,6 +65,14 @@ router.delete("/faqs/:id", requireAuth as any, async (req: AuthRequest, res): Pr
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeleteFaqParams.safeParse({ id: parseInt(raw, 10) });
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [existing] = await db.select().from(faqsTable).where(eq(faqsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "FAQ not found" }); return; }
+
+  const isSchoolAdmin = req.userRole === "school_admin" && existing.schoolId === req.userSchoolId;
+  if (existing.authorId !== req.userId && req.userRole !== "admin" && !isSchoolAdmin) {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
 
   await db.delete(faqsTable).where(eq(faqsTable.id, params.data.id));
   res.json({ success: true, message: "FAQ deleted" });

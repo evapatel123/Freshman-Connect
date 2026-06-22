@@ -17,6 +17,7 @@ import FAQs from "@/pages/faqs";
 import Friends from "@/pages/friends";
 import Notifications from "@/pages/notifications";
 import Admin from "@/pages/admin";
+import SchoolAdmin from "@/pages/school-admin";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/friends" component={Friends} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/admin" component={Admin} />
+      <Route path="/school-admin" component={SchoolAdmin} />
       <Route path="/settings" component={Settings} />
 
       <Route component={NotFound} />

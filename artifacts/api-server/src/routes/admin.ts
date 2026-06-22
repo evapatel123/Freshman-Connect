@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, reportsTable, usersTable, schoolsTable, matchesTable, messagesTable, postsTable, quizResultsTable } from "@workspace/db";
 import { eq, and, like, sql } from "drizzle-orm";
 import { CreateReportBody, ListReportsQueryParams, ResolveReportParams, ResolveReportBody, GetAdminDashboardQueryParams, ListAdminUsersQueryParams } from "@workspace/api-zod";
-import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/requireAuth";
+import { requireAuth, requireAdmin, requireSchoolAdmin, type AuthRequest } from "../middlewares/requireAuth";
 import { formatUser } from "./auth";
 
 const router: IRouter = Router();
@@ -48,9 +48,12 @@ router.patch("/admin/reports/:id", requireAdmin as any, async (req: AuthRequest,
   res.json({ ...report, reporter: await formatUser(reporter, school), createdAt: report.createdAt.toISOString(), updatedAt: undefined });
 });
 
-router.get("/admin/dashboard", requireAdmin as any, async (req: AuthRequest, res): Promise<void> => {
+router.get("/admin/dashboard", requireSchoolAdmin as any, async (req: AuthRequest, res): Promise<void> => {
   const params = GetAdminDashboardQueryParams.safeParse(req.query);
-  const schoolId = params.success && params.data.schoolId ? Number(params.data.schoolId) : req.userSchoolId!;
+  // global admin can query any school; school_admin is locked to their own
+  const schoolId = req.userRole === "admin" && params.success && params.data.schoolId
+    ? Number(params.data.schoolId)
+    : req.userSchoolId!;
 
   const [{ totalUsers }] = await db.select({ totalUsers: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.schoolId, schoolId));
   const [{ totalFreshmen }] = await db.select({ totalFreshmen: sql<number>`count(*)` }).from(usersTable).where(and(eq(usersTable.schoolId, schoolId), eq(usersTable.role, "freshman")));
@@ -76,9 +79,11 @@ router.get("/admin/dashboard", requireAdmin as any, async (req: AuthRequest, res
   });
 });
 
-router.get("/admin/users", requireAdmin as any, async (req: AuthRequest, res): Promise<void> => {
+router.get("/admin/users", requireSchoolAdmin as any, async (req: AuthRequest, res): Promise<void> => {
   const params = ListAdminUsersQueryParams.safeParse(req.query);
-  const schoolId = params.success && params.data.schoolId ? Number(params.data.schoolId) : req.userSchoolId!;
+  const schoolId = req.userRole === "admin" && params.success && params.data.schoolId
+    ? Number(params.data.schoolId)
+    : req.userSchoolId!;
 
   const conditions = [eq(usersTable.schoolId, schoolId)];
   if (params.success && params.data.role) conditions.push(eq(usersTable.role, params.data.role));
@@ -88,6 +93,37 @@ router.get("/admin/users", requireAdmin as any, async (req: AuthRequest, res): P
   const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, schoolId));
   const result = await Promise.all(users.map(u => formatUser(u, school)));
   res.json(result);
+});
+
+/** PATCH /api/admin/users/:id/role — promote/demote a user's role.
+ *  Global admin can set any role.
+ *  School admin can only promote within their school to school_admin/leader/freshman. */
+router.patch("/admin/users/:id/role", requireSchoolAdmin as any, async (req: AuthRequest, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const targetId = parseInt(raw, 10);
+  if (isNaN(targetId)) { res.status(400).json({ error: "Invalid user id" }); return; }
+
+  const { role } = req.body;
+  const allowedRoles = ["freshman", "leader", "school_admin", "admin"];
+  if (!role || !allowedRoles.includes(role)) {
+    res.status(400).json({ error: `Role must be one of: ${allowedRoles.join(", ")}` }); return;
+  }
+
+  // school_admin cannot promote to global admin
+  if (req.userRole === "school_admin" && role === "admin") {
+    res.status(403).json({ error: "School admins cannot grant global admin role" }); return;
+  }
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.id, targetId));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+
+  if (req.userRole === "school_admin" && target.schoolId !== req.userSchoolId) {
+    res.status(403).json({ error: "Cannot manage users from another school" }); return;
+  }
+
+  const [updated] = await db.update(usersTable).set({ role }).where(eq(usersTable.id, targetId)).returning();
+  const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, updated.schoolId));
+  res.json(await formatUser(updated, school));
 });
 
 export default router;

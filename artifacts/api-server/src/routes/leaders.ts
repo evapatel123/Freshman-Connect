@@ -23,6 +23,7 @@ async function buildLeaderResponse(profile: any, user: any, school: any) {
     availability: profile.availability,
     matchCount: profile.matchCount,
     rating: profile.rating ?? null,
+    isApproved: profile.isApproved,
   };
 }
 
@@ -96,6 +97,36 @@ router.patch("/leaders/profile", requireAuth as any, async (req: AuthRequest, re
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!));
   const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, user.schoolId));
   res.json(await buildLeaderResponse(profile, user, school));
+});
+
+router.patch("/leaders/:id/approve", requireAuth as any, async (req: AuthRequest, res): Promise<void> => {
+  if (req.userRole !== "admin" && req.userRole !== "school_admin") {
+    res.status(403).json({ error: "School admin access required" }); return;
+  }
+
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const leaderId = parseInt(raw, 10);
+  if (isNaN(leaderId)) { res.status(400).json({ error: "Invalid leader id" }); return; }
+
+  const results = await db.select().from(leaderProfilesTable)
+    .innerJoin(usersTable, eq(leaderProfilesTable.userId, usersTable.id))
+    .where(eq(leaderProfilesTable.userId, leaderId));
+
+  if (!results.length) { res.status(404).json({ error: "Leader profile not found" }); return; }
+
+  const { users: leaderUser } = results[0];
+  if (req.userRole === "school_admin" && leaderUser.schoolId !== req.userSchoolId) {
+    res.status(403).json({ error: "Cannot approve leaders from another school" }); return;
+  }
+
+  const isApproved = req.body.isApproved !== false;
+  const [profile] = await db.update(leaderProfilesTable)
+    .set({ isApproved })
+    .where(eq(leaderProfilesTable.userId, leaderId))
+    .returning();
+
+  const [school] = await db.select().from(schoolsTable).where(eq(schoolsTable.id, leaderUser.schoolId));
+  res.json(await buildLeaderResponse(profile, leaderUser, school));
 });
 
 router.get("/leaders/:id", requireAuth as any, async (req: AuthRequest, res): Promise<void> => {
