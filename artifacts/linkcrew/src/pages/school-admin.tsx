@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -46,19 +46,12 @@ export default function SchoolAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  if (!user || (user.role !== "school_admin" && user.role !== "admin")) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-full p-8">
-          <Card className="max-w-md w-full text-center p-8">
-            <p className="text-lg font-semibold">Access Denied</p>
-            <p className="text-muted-foreground mt-2">You need school admin permissions to view this page.</p>
-            <Button className="mt-4" onClick={() => setLocation("/dashboard")}>Go to Dashboard</Button>
-          </Card>
-        </div>
-      </AppLayout>
-    );
-  }
+  useEffect(() => {
+    if (user && user.role !== "school_admin" && user.role !== "admin") setLocation("/dashboard");
+    else if (!user) setLocation("/auth/login");
+  }, [user]);
+
+  if (!user || (user.role !== "school_admin" && user.role !== "admin")) return null;
 
   const { data: stats } = useGetAdminDashboard({});
   const { data: users, refetch: refetchUsers } = useListAdminUsers({});
