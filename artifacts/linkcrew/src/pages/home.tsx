@@ -29,11 +29,6 @@ export default function Home() {
           <GraduationCap className="h-6 w-6" />
           <span>Link Crew Connect</span>
         </div>
-        {currentSchool && (
-          <Button variant="outline" asChild>
-            <Link href="/auth/login">Back to {currentSchool.name}</Link>
-          </Button>
-        )}
       </header>
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12">
