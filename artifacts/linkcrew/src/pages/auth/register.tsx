@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useRegister } from "@workspace/api-client-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useParams } from "wouter";
+import { useRegister, useListSchools } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,36 @@ import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function Register() {
+  const { schoolId } = useParams<{ schoolId: string }>();
+  const parsedSchoolId = parseInt(schoolId ?? "", 10);
+
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", role: "freshman" });
-  const { school, setAuth } = useAuth();
+  const { setAuth, selectSchool } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const registerMutation = useRegister();
 
-  if (!school) { setLocation("/"); return null; }
+  const { data: schools, isLoading } = useListSchools();
+  const school = schools?.find(s => s.id === parsedSchoolId) ?? null;
+
+  useEffect(() => {
+    if (!isLoading && !isNaN(parsedSchoolId) && schools && !school) {
+      setLocation("/");
+    }
+  }, [isLoading, parsedSchoolId, schools, school]);
+
+  if (isNaN(parsedSchoolId)) {
+    setLocation("/");
+    return null;
+  }
+
+  if (isLoading || !school) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +48,7 @@ export default function Register() {
       { data: { ...form, schoolId: school.id } as any },
       {
         onSuccess: (data: any) => {
+          selectSchool(school);
           setAuth(data.user, data.token);
           setLocation(data.user.role === "freshman" ? "/quiz" : "/dashboard");
         },
@@ -37,7 +61,7 @@ export default function Register() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="absolute top-4 left-4">
         <Button variant="ghost" asChild>
-          <Link href="/auth/login"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Login</Link>
+          <Link href={`/auth/login/${school.id}`}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Login</Link>
         </Button>
       </div>
 
@@ -92,7 +116,7 @@ export default function Register() {
           </CardContent>
           <CardFooter className="flex justify-center border-t p-4 bg-muted/50">
             <p className="text-sm text-muted-foreground">
-              Already have an account? <Link href="/auth/login" className="text-primary font-medium hover:underline">Sign in</Link>
+              Already have an account? <Link href={`/auth/login/${school.id}`} className="text-primary font-medium hover:underline">Sign in</Link>
             </p>
           </CardFooter>
         </Card>

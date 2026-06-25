@@ -35,8 +35,8 @@ function Router() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={Home} />
-      <Route path="/auth/login" component={Login} />
-      <Route path="/auth/register" component={Register} />
+      <Route path="/auth/login/:schoolId" component={Login} />
+      <Route path="/auth/register/:schoolId" component={Register} />
 
       {/* Protected routes */}
       <Route path="/quiz" component={Quiz} />

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useLogin } from "@workspace/api-client-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useParams } from "wouter";
+import { useLogin, useListSchools } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,37 @@ import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function Login() {
+  const { schoolId } = useParams<{ schoolId: string }>();
+  const parsedSchoolId = parseInt(schoolId ?? "", 10);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { school, setAuth } = useAuth();
+  const { setAuth, selectSchool } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
+  const { data: schools, isLoading } = useListSchools();
+  const school = schools?.find(s => s.id === parsedSchoolId) ?? null;
+
   const loginMutation = useLogin();
 
-  if (!school) {
+  useEffect(() => {
+    if (!isLoading && !isNaN(parsedSchoolId) && schools && !school) {
+      setLocation("/");
+    }
+  }, [isLoading, parsedSchoolId, schools, school]);
+
+  if (isNaN(parsedSchoolId)) {
     setLocation("/");
     return null;
+  }
+
+  if (isLoading || !school) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,6 +49,7 @@ export default function Login() {
       { data: { email, password, schoolId: school.id } },
       {
         onSuccess: (data) => {
+          selectSchool(school);
           setAuth(data.user, data.token);
           setLocation("/dashboard");
         },
@@ -52,7 +73,7 @@ export default function Login() {
           </Link>
         </Button>
       </div>
-      
+
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
@@ -71,10 +92,10 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="student@school.edu" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="student@school.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -85,17 +106,17 @@ export default function Login() {
                   <Label htmlFor="password">Password</Label>
                   <Link href="#" className="text-sm text-primary hover:underline">Forgot password?</Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign In"}
@@ -104,7 +125,7 @@ export default function Login() {
           </CardContent>
           <CardFooter className="flex justify-center border-t p-4 bg-muted/50">
             <p className="text-sm text-muted-foreground">
-              New here? <Link href="/auth/register" className="text-primary font-medium hover:underline">Create an account</Link>
+              New here? <Link href={`/auth/register/${school.id}`} className="text-primary font-medium hover:underline">Create an account</Link>
             </p>
           </CardFooter>
         </Card>

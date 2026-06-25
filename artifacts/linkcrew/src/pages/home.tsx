@@ -10,12 +10,11 @@ import { Input } from "@/components/ui/input";
 export default function Home() {
   const { data: schools, isLoading } = useListSchools();
   const [, setLocation] = useLocation();
-  const { school: currentSchool, selectSchool } = useAuth();
+  const { school: currentSchool } = useAuth();
   const [search, setSearch] = useState("");
 
   const handleSelectSchool = (school: any) => {
-    selectSchool(school);
-    setLocation("/auth/login");
+    setLocation(`/auth/login/${school.id}`);
   };
 
   const filteredSchools = schools?.filter(s => 
