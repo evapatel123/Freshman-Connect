@@ -1,24 +1,24 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { useListSchools } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
-import { GraduationCap, MapPin, Search } from "lucide-react";
+import { GraduationCap, MapPin, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export default function Home() {
-  const { data: schools, isLoading } = useListSchools();
+  const { data: schools, isLoading } = useListSchools({
+    query: { refetchInterval: 30_000 },
+  });
   const [, setLocation] = useLocation();
-  const { school: currentSchool } = useAuth();
   const [search, setSearch] = useState("");
 
   const handleSelectSchool = (school: any) => {
     setLocation(`/auth/login/${school.id}`);
   };
 
-  const filteredSchools = schools?.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredSchools = schools?.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.city.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -44,7 +44,7 @@ export default function Home() {
 
         <div className="max-w-md mx-auto mb-10 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-          <Input 
+          <Input
             className="pl-10 h-12 text-lg rounded-full bg-card shadow-sm"
             placeholder="Search for your school..."
             value={search}
@@ -61,8 +61,8 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSchools?.map(school => (
-              <Card 
-                key={school.id} 
+              <Card
+                key={school.id}
                 className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group overflow-hidden"
                 onClick={() => handleSelectSchool(school)}
               >
@@ -78,8 +78,9 @@ export default function Home() {
                     {school.city}, {school.state}
                   </div>
                   <div className="flex justify-between items-center mt-6">
-                    <div className="text-xs font-medium bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
-                      {school.memberCount} members
+                    <div className="flex items-center gap-1.5 text-xs font-medium bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
+                      <Users className="h-3 w-3" />
+                      {Number((school as any).studentCount ?? school.memberCount)} members
                     </div>
                     <Button variant="ghost" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
                       Select
@@ -88,7 +89,7 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
-            
+
             {filteredSchools?.length === 0 && (
               <div className="col-span-full text-center py-12 text-muted-foreground">
                 <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-20" />
