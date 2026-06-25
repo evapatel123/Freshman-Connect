@@ -2,7 +2,7 @@
 
 ## Phase 1
 
-Project Planning
+Project Planning (Freshman-Connect)
 
 - Product requirements
 - User stories
