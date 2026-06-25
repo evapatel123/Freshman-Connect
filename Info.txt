@@ -1,3 +1,5 @@
+This app is called Freshman-Connect
+
 🏫 Multi-School Platform
 First screen asks "Select Your School"
 Schools can request to join the platform
