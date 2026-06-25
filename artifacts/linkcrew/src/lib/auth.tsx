@@ -8,6 +8,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   setAuth: (user: User, token: string, school?: School | null) => void;
+  selectSchool: (school: School) => void;
   logout: () => void;
 }
 
@@ -49,6 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const selectSchool = (newSchool: School) => {
+    setSchool(newSchool);
+    localStorage.setItem("linkcrew_school", JSON.stringify(newSchool));
+  };
+
   const setAuth = (newUser: User, newToken: string, newSchool?: School | null) => {
     setUser(newUser);
     setToken(newToken);
@@ -80,7 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       school, 
       token, 
       isLoading: isLoadingMe, 
-      setAuth, 
+      setAuth,
+      selectSchool,
       logout: handleLogout 
     }}>
       {children}
