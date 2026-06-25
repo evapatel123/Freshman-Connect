@@ -1,4 +1,4 @@
-This app is called Freshman-Connect
+This app is called Freshman-Connect (connects link-crew leaders to freshmen)
 
 🏫 Multi-School Platform
 First screen asks "Select Your School"
